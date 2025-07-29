@@ -5,13 +5,10 @@ namespace Xmanbyby\BaiduXiling;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
-use Psr\SimpleCache\CacheInterface;
 use RuntimeException;
 
-/**
- * Class BaiduApiClient
- * 百度开放平台通用API客户端
- */
+class BaiduApiException extends \RuntimeException {}
+
 class BaiduApiClient
 {
     protected string $apiKey;
@@ -21,16 +18,8 @@ class BaiduApiClient
     protected int $tokenExpire = 0;
 
     protected Client $http;
-    protected CacheInterface $cache;
 
-    protected string $cacheKey;
-    protected int $cacheTtl = 3600;
-
-    /**
-     * @param array $options 配置项，必须包含 api_key 和 secret_key
-     * @param CacheInterface $cache PSR-16 缓存实例
-     */
-    public function __construct(array $options, CacheInterface $cache)
+    public function __construct(array $options)
     {
         if (empty($options['api_key']) || empty($options['secret_key'])) {
             throw new \InvalidArgumentException('api_key 和 secret_key 必须提供');
@@ -39,37 +28,25 @@ class BaiduApiClient
         $this->apiKey = $options['api_key'];
         $this->secretKey = $options['secret_key'];
 
-        $this->cache = $cache;
-
-        $cacheKeyPrefix = $options['cache_key_prefix'] ?? 'baidu_api_access_token_';
-        $this->cacheKey = $cacheKeyPrefix . md5($this->apiKey);
-
-        $this->cacheTtl = $options['cache_ttl'] ?? 3600;
-
         $this->http = new Client();
-
-        $this->loadTokenFromCache();
-    }
-
-    protected function loadTokenFromCache(): void
-    {
-        $tokenData = $this->cache->get($this->cacheKey);
-        if (is_array($tokenData) && isset($tokenData['token'], $tokenData['expire']) && $tokenData['expire'] > time()) {
-            $this->accessToken = $tokenData['token'];
-            $this->tokenExpire = $tokenData['expire'];
-        }
     }
 
     /**
-     * @return string
+     * 手动设置 AccessToken 及过期时间（时间戳）
+     */
+    public function setAccessToken(string $token, int $expireTimestamp): void
+    {
+        $this->accessToken = $token;
+        $this->tokenExpire = $expireTimestamp;
+    }
+
+    /**
+     * 主动请求并获取新的 AccessToken
+     * @return array ['access_token' => string, 'expire' => int 时间戳]
      * @throws RuntimeException|GuzzleException
      */
-    public function getAccessToken(): string
+    public function fetchAccessToken(): array
     {
-        if ($this->accessToken && $this->tokenExpire > time() + 60) {
-            return $this->accessToken;
-        }
-
         $url = 'https://aip.baidubce.com/oauth/2.0/token';
 
         $response = $this->http->post($url, [
@@ -86,18 +63,34 @@ class BaiduApiClient
             throw new RuntimeException('获取百度 AccessToken 失败: ' . json_encode($data));
         }
 
-        $this->accessToken = $data['access_token'];
-        $this->tokenExpire = time() + (int)$data['expires_in'];
-        $ttl = max(($data['expires_in'] ?? $this->cacheTtl) - 60, 1);
+        $accessToken = $data['access_token'];
+        $expire = time() + (int)$data['expires_in'];
 
-        $this->cache->set($this->cacheKey, [
-            'token' => $this->accessToken,
-            'expire' => $this->tokenExpire,
-        ], $ttl);
+        return [
+            'access_token' => $accessToken,
+            'expire' => $expire,
+        ];
+    }
 
+    /**
+     * 获取当前缓存的 AccessToken，若无或过期自动刷新
+     * 这里不做缓存，只在内存中保留
+     * @throws RuntimeException|GuzzleException
+     */
+    public function getAccessToken(): string
+    {
+        if ($this->accessToken && $this->tokenExpire > time() + 60) {
+            return $this->accessToken;
+        }
+        $tokenData = $this->fetchAccessToken();
+        $this->setAccessToken($tokenData['access_token'], $tokenData['expire']);
         return $this->accessToken;
     }
 
+    /**
+     * 发送带鉴权的API请求
+     * @throws BaiduApiException
+     */
     public function request(string $method, string $url, array $params = [], array $headers = []): array
     {
         $headers = array_merge([
@@ -126,6 +119,10 @@ class BaiduApiClient
         }
     }
 
+    /**
+     * 上传文件
+     * @throws RuntimeException|BaiduApiException|GuzzleException
+     */
     public function uploadFile(string $filePath, array $params = []): array
     {
         if (!file_exists($filePath)) {
@@ -163,6 +160,9 @@ class BaiduApiClient
         return $body;
     }
 
+    /**
+     * 创建曦灵数字人音视频合成任务
+     */
     public function createSynthesisTask(array $params): array
     {
         $url = 'https://aip.baidubce.com/rpc/2.0/ai_custom/v1/digital_human/synthesis';
@@ -172,6 +172,9 @@ class BaiduApiClient
         ]);
     }
 
+    /**
+     * 查询曦灵数字人合成任务结果
+     */
     public function getSynthesisTaskResult(string $taskId): array
     {
         $url = 'https://aip.baidubce.com/rpc/2.0/ai_custom/v1/digital_human/synthesis/query';
@@ -183,6 +186,10 @@ class BaiduApiClient
         ]);
     }
 
+    /**
+     * 轮询等待合成任务完成
+     * @throws RuntimeException|BaiduApiException
+     */
     public function waitForSynthesisResult(string $taskId, int $timeout = 30, int $interval = 3): array
     {
         $startTime = time();
