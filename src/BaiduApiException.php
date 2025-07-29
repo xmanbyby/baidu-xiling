@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Xman\BaiduXiling;
+namespace Xmanbyby\BaiduXiling;
 
 class BaiduApiException extends \RuntimeException
 {

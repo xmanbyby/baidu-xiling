@@ -1,44 +1,29 @@
 {
-    "name": "xman/baidu-xiling",
-    "description": "百度羲灵数字人音视频合成API客户端 SDK，基于 Guzzle 和 PSR-16 缓存接口。",
-    "type": "library",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "xman",
-            "email": "194631327@qq.com",
-            "homepage": "https://github.com/xman",
-            "role": "Developer"
-        }
-    ],
-    "require": {
-        "php": ">=8.0",
-        "guzzlehttp/guzzle": "^7.0",
-        "psr/simple-cache": "^1.0 || ^2.0 || ^3.0"
-    },
-    "autoload": {
-        "psr-4": {
-            "Xman\\BaiduXiling\\": "src/"
-        }
-    },
-    "require-dev": {
-        "phpunit/phpunit": "^9.5"
-    },
-    "minimum-stability": "stable",
-    "prefer-stable": true,
-    "keywords": [
-        "baidu",
-        "xiling",
-        "sdk",
-        "api",
-        "digital-human",
-        "guzzle",
-        "psr16",
-        "composer"
-    ],
-    "homepage": "https://github.com/xman/baidu-xiling",
-    "support": {
-        "issues": "https://github.com/xman/baidu-xiling/issues",
-        "source": "https://github.com/xman/baidu-xiling"
+  "name": "xmanbyby/baidu-xiling",
+  "description": "百度羲灵（Xiling）数字人音视频合成SDK，基于Guzzle和PSR缓存接口的PHP客户端。",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "xman",
+      "email": "1946321327@qq.com"
     }
+  ],
+  "require": {
+    "php": ">=8.0",
+    "guzzlehttp/guzzle": "^7.0",
+    "psr/simple-cache": "^1.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Xmanbyby\\BaiduXiling\\": "src/"
+    }
+  },
+  "homepage": "https://github.com/xmanbyby/baidu-xiling",
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/xmanbyby/baidu-xiling"
+    }
+  ]
 }

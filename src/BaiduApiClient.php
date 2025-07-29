@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Xman\BaiduXiling;
+namespace Xmanbyby\BaiduXiling;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
